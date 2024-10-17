@@ -3,13 +3,69 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reading Detection</title>
-    <script src=”https://api.gazerecorder.com/GazeCloudAPI.js” ></script>
+    <title>GazeRecorder Example</title>
+    <script src="https://api.gazerecorder.com/GazeCloudAPI.js"></script>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: #f4f4f4;
+        }
+        button {
+            margin: 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+        }
+    </style>
 </head>
 <body>
-    <center>
-        <h2 id="text">This is example text for problem 1. Can it be done or not?</h2>
-        <p id="status"></p> <!-- Status message will be shown here -->
-    </center>
+
+    <h1>GazeRecorder Eye Tracking Example</h1>
+    <button id="startTracking">Start Eye Tracking</button>
+    <button id="stopTracking">Stop Eye Tracking</button>
+    <div id="gazeOutput"></div>
+
+    <script>
+        // Start eye tracking
+        document.getElementById('startTracking').addEventListener('click', function() {
+            GazeCloudAPI.StartEyeTracking();
+        });
+
+        // Stop eye tracking
+        document.getElementById('stopTracking').addEventListener('click', function() {
+            GazeCloudAPI.StopEyeTracking();
+        });
+
+        // Define your results data callback
+        GazeCloudAPI.OnResult = function(GazeData) {
+            if (GazeData.state === 0) { // Valid gaze data
+                document.getElementById('gazeOutput').innerText =
+                    `Gaze X: ${GazeData.docX}, Gaze Y: ${GazeData.docY}, Time: ${GazeData.time}`;
+            } else if (GazeData.state === -1) { // Face tracking lost
+                document.getElementById('gazeOutput').innerText = 'Face tracking lost.';
+            } else if (GazeData.state === 1) { // Gaze data uncalibrated
+                document.getElementById('gazeOutput').innerText = 'Gaze data uncalibrated.';
+            }
+        };
+
+        // Optional callbacks
+        GazeCloudAPI.OnCalibrationComplete = function() {
+            console.log('Gaze Calibration Complete');
+        };
+
+        GazeCloudAPI.OnCamDenied = function() {
+            console.log('Camera access denied');
+        };
+
+        GazeCloudAPI.OnError = function(msg) {
+            console.log('Error: ' + msg);
+        };
+
+        // Enable click recalibration
+        GazeCloudAPI.UseClickRecalibration = true;
+    </script>
 </body>
 </html>
