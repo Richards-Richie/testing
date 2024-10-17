@@ -19,6 +19,9 @@
             padding: 10px 20px;
             font-size: 16px;
         }
+        canvas {
+            border: 1px solid #000;
+        }
     </style>
 </head>
 <body>
@@ -26,11 +29,16 @@
     <h1>GazeRecorder Eye Tracking Example</h1>
     <button id="startTracking">Start Eye Tracking</button>
     <button id="stopTracking">Stop Eye Tracking</button>
+    <canvas id="gazeCanvas" width="800" height="600"></canvas>
     <div id="gazeOutput"></div>
 
     <script>
+        const canvas = document.getElementById('gazeCanvas');
+        const context = canvas.getContext('2d');
+
         // Start eye tracking
         document.getElementById('startTracking').addEventListener('click', function() {
+            context.clearRect(0, 0, canvas.width, canvas.height); // Clear the canvas before starting
             GazeCloudAPI.StartEyeTracking();
         });
 
@@ -42,14 +50,32 @@
         // Define your results data callback
         GazeCloudAPI.OnResult = function(GazeData) {
             if (GazeData.state === 0) { // Valid gaze data
+                const gazeX = GazeData.docX;
+                const gazeY = GazeData.docY;
+
                 document.getElementById('gazeOutput').innerText =
-                    `Gaze X: ${GazeData.docX}, Gaze Y: ${GazeData.docY}, Time: ${GazeData.time}`;
+                    `Gaze X: ${gazeX}, Gaze Y: ${gazeY}, Time: ${GazeData.time}`;
+
+                // Clear the canvas
+                context.clearRect(0, 0, canvas.width, canvas.height);
+
+                // Draw a circle at the gaze coordinates
+                drawCircle(gazeX, gazeY);
             } else if (GazeData.state === -1) { // Face tracking lost
                 document.getElementById('gazeOutput').innerText = 'Face tracking lost.';
             } else if (GazeData.state === 1) { // Gaze data uncalibrated
                 document.getElementById('gazeOutput').innerText = 'Gaze data uncalibrated.';
             }
         };
+
+        // Function to draw a circle
+        function drawCircle(x, y) {
+            context.beginPath();
+            context.arc(x, y, 10, 0, Math.PI * 2); // 10 pixels radius
+            context.fillStyle = 'red'; // Circle color
+            context.fill();
+            context.closePath();
+        }
 
         // Optional callbacks
         GazeCloudAPI.OnCalibrationComplete = function() {
