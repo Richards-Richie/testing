@@ -19,6 +19,7 @@
             color: white;
             padding: 20px;
             font-size: 24px;
+            width: fit-content;
         }
         #buttonContainer {
             display: flex;
@@ -48,14 +49,23 @@
     <div id="gazeOutput">Gaze data will appear here.</div>
 
     <script>
+        let gazePositions = [];
+        let isReading = false;
+
+        const textElement = document.getElementById('gazeText');
+        const textRect = textElement.getBoundingClientRect(); // Get position and size of text element
+
         // Start eye tracking
         document.getElementById('startTracking').addEventListener('click', function() {
+            gazePositions = [];
+            isReading = false;
             GazeCloudAPI.StartEyeTracking();
         });
 
         // Stop eye tracking
         document.getElementById('stopTracking').addEventListener('click', function() {
             GazeCloudAPI.StopEyeTracking();
+            checkIfUserReadText();
         });
 
         // Define your results data callback
@@ -63,6 +73,11 @@
             if (GazeData.state === 0) { // Valid gaze data
                 const gazeX = GazeData.docX;
                 const gazeY = GazeData.docY;
+
+                // Check if the gaze is within the bounds of the text element
+                if (gazeX >= textRect.left && gazeX <= textRect.right && gazeY >= textRect.top && gazeY <= textRect.bottom) {
+                    gazePositions.push({ x: gazeX, y: gazeY, time: GazeData.time });
+                }
 
                 document.getElementById('gazeOutput').innerText =
                     `Gaze X: ${gazeX}, Gaze Y: ${gazeY}, Time: ${GazeData.time}`;
@@ -72,6 +87,27 @@
                 document.getElementById('gazeOutput').innerText = 'Gaze data uncalibrated.';
             }
         };
+
+        // Function to check if the user has read the text
+        function checkIfUserReadText() {
+            if (gazePositions.length > 0) {
+                let leftToRight = true;
+
+                // Loop through the gaze data to see if it moves from left to right
+                for (let i = 1; i < gazePositions.length; i++) {
+                    if (gazePositions[i].x < gazePositions[i - 1].x) {
+                        leftToRight = false;
+                        break;
+                    }
+                }
+
+                if (leftToRight) {
+                    document.getElementById('gazeOutput').innerText = 'User has read the text.';
+                } else {
+                    document.getElementById('gazeOutput').innerText = 'User did not read the text properly.';
+                }
+            }
+        }
 
         // Optional callbacks
         GazeCloudAPI.OnCalibrationComplete = function() {
