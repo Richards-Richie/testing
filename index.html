@@ -38,7 +38,7 @@
 </head>
 <body>
 
-    <div id="gazeText">ljdfkldsl jfljslkdfjsdgjfdkjfljdsjfaljdfkldsl jfljslkdfjsdgjfdkjfljdsjfa</div>
+    <div id="gazeText">ljdfkldsl jfljslkdfjsdgjfdkjfljdsjfa</div>
 
     <!-- Button container to hold the start/stop buttons below the text -->
     <div id="buttonContainer">
@@ -51,6 +51,8 @@
     <script>
         let gazePositions = [];
         let isReading = false;
+        let timerStarted = false;
+        let timer = null;
 
         const textElement = document.getElementById('gazeText');
         const textRect = textElement.getBoundingClientRect(); // Get position and size of text element
@@ -59,13 +61,15 @@
         document.getElementById('startTracking').addEventListener('click', function() {
             gazePositions = [];
             isReading = false;
+            timerStarted = false;
+            clearTimeout(timer); // Reset the timer if it was running
+            document.getElementById('gazeOutput').innerText = 'Gaze data will appear here.';
             GazeCloudAPI.StartEyeTracking();
         });
 
         // Stop eye tracking
         document.getElementById('stopTracking').addEventListener('click', function() {
             GazeCloudAPI.StopEyeTracking();
-            checkIfUserReadText();
         });
 
         // Define your results data callback
@@ -77,35 +81,51 @@
                 // Check if the gaze is within the bounds of the text element
                 if (gazeX >= textRect.left && gazeX <= textRect.right && gazeY >= textRect.top && gazeY <= textRect.bottom) {
                     gazePositions.push({ x: gazeX, y: gazeY, time: GazeData.time });
+
+                    // Check if the gaze is moving left to right
+                    if (isLookingLeftToRight()) {
+                        startReadingTimer();
+                    } else {
+                        stopReadingTimer();
+                    }
                 }
 
                 document.getElementById('gazeOutput').innerText =
                     `Gaze X: ${gazeX}, Gaze Y: ${gazeY}, Time: ${GazeData.time}`;
             } else if (GazeData.state === -1) { // Face tracking lost
                 document.getElementById('gazeOutput').innerText = 'Face tracking lost.';
+                stopReadingTimer(); // Stop the timer if tracking is lost
             } else if (GazeData.state === 1) { // Gaze data uncalibrated
                 document.getElementById('gazeOutput').innerText = 'Gaze data uncalibrated.';
+                stopReadingTimer();
             }
         };
 
-        // Function to check if the user has read the text
-        function checkIfUserReadText() {
-            if (gazePositions.length > 0) {
-                let leftToRight = true;
+        // Function to check if the user has read the text from left to right
+        function isLookingLeftToRight() {
+            if (gazePositions.length > 1) {
+                // Ensure gaze is generally moving left to right
+                const lastIndex = gazePositions.length - 1;
+                return gazePositions[lastIndex].x > gazePositions[lastIndex - 1].x;
+            }
+            return false;
+        }
 
-                // Loop through the gaze data to see if it moves from left to right
-                for (let i = 1; i < gazePositions.length; i++) {
-                    if (gazePositions[i].x < gazePositions[i - 1].x) {
-                        leftToRight = false;
-                        break;
-                    }
-                }
+        // Start a 5-second timer to check if the user has looked at the text for 5 seconds
+        function startReadingTimer() {
+            if (!timerStarted) {
+                timerStarted = true;
+                timer = setTimeout(function() {
+                    document.getElementById('gazeOutput').innerText = 'User has looked/read the text for 5 seconds.';
+                }, 5000);
+            }
+        }
 
-                if (leftToRight) {
-                    document.getElementById('gazeOutput').innerText = 'User has read the text.';
-                } else {
-                    document.getElementById('gazeOutput').innerText = 'User did not read the text properly.';
-                }
+        // Stop the reading timer if the user stops looking left to right
+        function stopReadingTimer() {
+            if (timerStarted) {
+                timerStarted = false;
+                clearTimeout(timer);
             }
         }
 
